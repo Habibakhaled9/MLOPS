@@ -1,0 +1,6 @@
+[project]
+name = "llm-question-api"
+version = "0.1.0"
+description = "A FastAPI service that sends questions to a local Ollama model."
+requires-python = ">=3.13"
+dependencies = []

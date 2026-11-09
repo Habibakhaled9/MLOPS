@@ -1,0 +1,10 @@
+# Automatically recognize and normalize text files.
+* text=auto
+
+# Keep source and deployment files consistent with Linux containers.
+*.py text eol=lf
+*.toml text eol=lf
+*.lock text eol=lf
+.python-version text eol=lf
+Dockerfile text eol=lf
+*.sh text eol=lf
