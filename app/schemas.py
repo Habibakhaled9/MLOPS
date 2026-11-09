@@ -34,3 +34,4 @@ class AskResponse(BaseModel):
 
     question: str
     answer: str
+    model: str
