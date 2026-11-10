@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -35,3 +36,13 @@ class AskResponse(BaseModel):
     question: str
     answer: str
     model: str
+
+
+class QuestionHistoryItem(BaseModel):
+    """One stored question and answer."""
+
+    id: int
+    question: str
+    answer: str
+    model_name: str
+    created_at: datetime

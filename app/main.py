@@ -1,15 +1,21 @@
 import logging
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query, status
 
 from app.config import get_settings
+from app.database import DatabaseError, read_question_history
 from app.logging_config import configure_logging
 from app.ollama_client import (
     OllamaConnectionError,
     OllamaResponseError,
     generate_answer,
 )
-from app.schemas import AskRequest, AskResponse, HealthResponse
+from app.schemas import (
+    AskRequest,
+    AskResponse,
+    HealthResponse,
+    QuestionHistoryItem,
+)
 
 configure_logging()
 
@@ -72,3 +78,26 @@ async def ask_question(request: AskRequest) -> AskResponse:
         answer=answer,
         model=settings.ollama_model,
     )
+
+
+@app.get(
+    "/questions",
+    response_model=list[QuestionHistoryItem],
+    tags=["Database"],
+)
+async def get_questions(
+    limit: int = Query(default=20, ge=1, le=100),
+) -> list[QuestionHistoryItem]:
+    """Return recently stored questions from PostgreSQL."""
+
+    try:
+        rows = await read_question_history(limit)
+    except DatabaseError as exc:
+        logger.exception("Failed to read question history")
+
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database is unavailable.",
+        ) from exc
+
+    return [QuestionHistoryItem(**row) for row in rows]
