@@ -46,3 +46,30 @@ class QuestionHistoryItem(BaseModel):
     answer: str
     model_name: str
     created_at: datetime
+
+
+class CacheWriteRequest(BaseModel):
+    """Value to store temporarily in Redis."""
+
+    key: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9:_-]+$",
+    )
+    value: str = Field(min_length=1, max_length=1000)
+    ttl_seconds: int = Field(default=300, ge=1, le=86400)
+
+
+class CacheWriteResponse(BaseModel):
+    """Confirmation that a value was cached."""
+
+    key: str
+    value: str
+    ttl_seconds: int
+
+
+class CacheReadResponse(BaseModel):
+    """Value retrieved from Redis."""
+
+    key: str
+    value: str
