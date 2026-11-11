@@ -1,12 +1,10 @@
-FROM python:3.13-slim
+FROM python:3.13-slim AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.13.3 /uv /uvx /bin/
 
 ENV UV_PYTHON_DOWNLOADS=0 \
     UV_LINK_MODE=copy \
-    PATH="/app/.venv/bin:$PATH" \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    UV_COMPILE_BYTECODE=1
 
 WORKDIR /app
 
@@ -14,15 +12,33 @@ COPY pyproject.toml uv.lock ./
 
 RUN uv sync --locked --no-dev --no-install-project
 
-COPY app ./app
 
-COPY alembic.ini ./alembic.ini
-COPY migrations ./migrations
+FROM python:3.13-slim AS runtime
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HOME="/home/app"
+
+RUN groupadd --system --gid 10001 app \
+    && useradd --system \
+        --uid 10001 \
+        --gid 10001 \
+        --create-home \
+        --home-dir /home/app \
+        app
+
+WORKDIR /app
+
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --chown=app:app app ./app
+COPY --chown=app:app alembic.ini ./alembic.ini
+COPY --chown=app:app migrations ./migrations
 
 RUN mkdir -p /app/logs \
-    && chown -R 10001:10001 /app
+    && chown -R app:app /app/logs
 
-USER 10001
+USER app
 
 EXPOSE 8000
 
