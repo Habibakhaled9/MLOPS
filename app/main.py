@@ -1,25 +1,30 @@
 import logging
 
 from fastapi import FastAPI, HTTPException, Path, Query, status
-from app.cache import CacheError, read_cache_value, store_cache_value
 
+from app.cache import CacheError, read_cache_value, store_cache_value
 from app.config import get_settings
 from app.database import DatabaseError, read_question_history
 from app.logging_config import configure_logging
 from app.ollama_client import (
     OllamaConnectionError,
     OllamaResponseError,
-    generate_answer,
+    
 )
+
+from app.question_service import answer_question
+
 from app.schemas import (
     AskRequest,
     AskResponse,
-    HealthResponse,
-    QuestionHistoryItem,
     CacheReadResponse,
     CacheWriteRequest,
-    CacheWriteResponse
+    CacheWriteResponse,
+    HealthResponse,
+    QuestionHistoryItem,
 )
+
+
 
 configure_logging()
 
@@ -49,17 +54,12 @@ def health_check() -> HealthResponse:
     tags=["Questions"],
 )
 async def ask_question(request: AskRequest) -> AskResponse:
-    """Send a validated question to Ollama."""
+    """Answer a question using cache, database, or Ollama."""
 
     settings = get_settings()
 
-    logger.info(
-        "Sending question to Ollama model=%s",
-        settings.ollama_model,
-    )
-
     try:
-        answer = await generate_answer(request.question, settings)
+        result = await answer_question(request.question, settings)
     except OllamaConnectionError as exc:
         logger.exception("Could not connect to Ollama")
 
@@ -74,13 +74,19 @@ async def ask_question(request: AskRequest) -> AskResponse:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Ollama returned an invalid response.",
         ) from exc
+    except DatabaseError as exc:
+        logger.exception("Database operation failed")
 
-    logger.info("Answer received from Ollama")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database is unavailable.",
+        ) from exc
 
     return AskResponse(
         question=request.question,
-        answer=answer,
+        answer=result.answer,
         model=settings.ollama_model,
+        source=result.source,
     )
 
 
@@ -104,7 +110,17 @@ async def get_questions(
             detail="Database is unavailable.",
         ) from exc
 
-    return [QuestionHistoryItem(**row) for row in rows]
+    return [QuestionHistoryItem.model_validate(
+        {
+            "id": row.id,
+            "original_question": row.original_question,
+            "answer": row.answer,
+            "model_name": row.model_name,
+            "created_at": row.created_at,
+        }
+    )
+    for row in rows
+]
 
 @app.post(
     "/cache",

@@ -16,6 +16,9 @@ RUN uv sync --locked --no-dev --no-install-project
 
 COPY app ./app
 
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
+
 RUN mkdir -p /app/logs \
     && chown -R 10001:10001 /app
 

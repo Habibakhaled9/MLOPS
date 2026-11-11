@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.ollama_client import OllamaConnectionError
+from app.question_service import AnswerResult
 
 client = TestClient(app)
 
@@ -15,12 +16,15 @@ def test_health_endpoint() -> None:
 
 
 def test_ask_endpoint_with_valid_question(monkeypatch) -> None:
-    async def fake_generate_answer(question, settings):
-        return "Nginx is a web server and reverse proxy."
+    async def fake_answer_question(question, settings):
+        return AnswerResult(
+            answer="Nginx is a web server and reverse proxy.",
+            source="ollama",
+        )
 
     monkeypatch.setattr(
-        "app.main.generate_answer",
-        fake_generate_answer,
+        "app.main.answer_question",
+        fake_answer_question,
     )
 
     response = client.post(
@@ -33,6 +37,7 @@ def test_ask_endpoint_with_valid_question(monkeypatch) -> None:
         "question": "What is Nginx?",
         "answer": "Nginx is a web server and reverse proxy.",
         "model": "qwen2.5:3b",
+        "source": "ollama",
     }
 
 
@@ -52,12 +57,12 @@ def test_ask_endpoint_rejects_invalid_input(payload) -> None:
 
 
 def test_ask_endpoint_when_ollama_is_unavailable(monkeypatch) -> None:
-    async def fake_generate_answer(question, settings):
+    async def fake_answer_question(question, settings):
         raise OllamaConnectionError("Ollama is offline.")
 
     monkeypatch.setattr(
-        "app.main.generate_answer",
-        fake_generate_answer,
+        "app.main.answer_question",
+        fake_answer_question,
     )
 
     response = client.post(
