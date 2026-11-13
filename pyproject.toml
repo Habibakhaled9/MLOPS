@@ -4,15 +4,24 @@ version = "0.1.0"
 description = "A FastAPI service that sends questions to a local Ollama model."
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.20.1",
+    "asyncpg>=0.32.0",
     "fastapi>=0.162.2",
     "httpx>=0.28.1",
     "pydantic-settings>=2.16.2",
+    "redis>=8.1.0",
+    "sqlalchemy[asyncio]>=2.1.8",
     "uvicorn[standard]>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.16.0",
     "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.4",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
