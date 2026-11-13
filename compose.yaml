@@ -30,7 +30,7 @@ services:
   migrate:
     build:
       context: .
-    image: llm-question-api:1.0
+    image: ${API_IMAGE:-llm-question-api:1.0}
     command: ["alembic", "upgrade", "head"]
     environment:
       DATABASE_URL: postgresql+asyncpg://app_user:${POSTGRES_PASSWORD}@postgres:5432/app_db
@@ -42,7 +42,7 @@ services:
   api:
     build:
       context: .
-    image: llm-question-api:1.0
+    image: ${API_IMAGE:-llm-question-api:1.0}
     ports:
       - "8000:8000"
     environment:
@@ -50,7 +50,7 @@ services:
       OLLAMA_MODEL: qwen2.5:3b
       DATABASE_URL: postgresql+asyncpg://app_user:${POSTGRES_PASSWORD}@postgres:5432/app_db
       REDIS_URL: redis://redis:6379/0
-      CACHE_TTL_SECONDS: 3600
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-3600}
     depends_on:
       migrate:
         condition: service_completed_successfully
