@@ -9,11 +9,8 @@ from app.logging_config import configure_logging
 from app.ollama_client import (
     OllamaConnectionError,
     OllamaResponseError,
-    
 )
-
 from app.question_service import answer_question
-
 from app.schemas import (
     AskRequest,
     AskResponse,
@@ -23,8 +20,6 @@ from app.schemas import (
     HealthResponse,
     QuestionHistoryItem,
 )
-
-
 
 configure_logging()
 
